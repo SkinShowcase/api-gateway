@@ -1,0 +1,54 @@
+# Профиль docker: явные URL бэкендов (имена сервисов Docker), чтобы маршруты гарантированно работали.
+gateway:
+  session-check:
+    auth-base-url: ${GATEWAY_AUTH_BASE_URL:http://auth:8080}
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth
+          uri: http://auth:8080
+          predicates:
+            - Path=/auth/**
+          order: 100
+        - id: items
+          uri: http://items:8080
+          predicates:
+            - Path=/api/v1/items/**
+          order: 200
+        - id: items-admin
+          uri: http://items:8080
+          predicates:
+            - Path=/api/v1/admin/**
+          order: 201
+        - id: messaging-admin
+          uri: http://messaging:8080
+          predicates:
+            - Path=/api/admin/messaging/**
+          order: 290
+        - id: messaging-websocket
+          uri: http://messaging:8080
+          predicates:
+            - Path=/ws/messages/**
+          order: 295
+        - id: messaging
+          uri: http://messaging:8080
+          predicates:
+            - Path=/api/chats/**
+          order: 300
+        - id: steam-gateway-inventory
+          uri: http://steam-gateway:8080
+          predicates:
+            - Path=/api/v1/inventory/**
+          order: 400
+        - id: steam-gateway-market
+          uri: http://steam-gateway:8080
+          predicates:
+            - Path=/api/v1/market/**
+          order: 401
+        - id: trades
+          uri: http://trades:8080
+          predicates:
+            - Path=/api/v1/trades/**
+          order: 500

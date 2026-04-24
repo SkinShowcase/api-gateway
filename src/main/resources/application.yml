@@ -1,0 +1,119 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        add-on-same-origin: false
+        cors-configurations:
+          "[/**]":
+            allowedOrigins: "${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}"
+            allowedMethods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+      routes:
+        # Auth: Steam OpenID, /me, privacy, last-online
+        - id: auth
+          uri: ${GATEWAY_AUTH_BASE_URL:http://localhost:8081}
+          predicates:
+            - Path=/auth/**
+          order: 100
+
+        # Items: скины, скриншоты, админ (ручной sync)
+        - id: items
+          uri: ${GATEWAY_ITEMS_BASE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/items/**
+          order: 200
+        - id: items-admin
+          uri: ${GATEWAY_ITEMS_BASE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/admin/**
+          order: 201
+
+        # Messaging: админ (ответ поддержки)
+        - id: messaging-admin
+          uri: ${GATEWAY_MESSAGING_BASE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/admin/messaging/**
+          order: 290
+
+        # Messaging: WebSocket (тот же хост, что REST — только через gateway)
+        - id: messaging-websocket
+          uri: ${GATEWAY_MESSAGING_BASE_URL:http://localhost:8082}
+          predicates:
+            - Path=/ws/messages/**
+          order: 295
+
+        # Messaging: чаты и сообщения
+        - id: messaging
+          uri: ${GATEWAY_MESSAGING_BASE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/chats/**
+          order: 300
+
+        # Steam Gateway: инвентарь, маркет (inventory + market)
+        - id: steam-gateway-inventory
+          uri: ${GATEWAY_STEAM_GATEWAY_BASE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/inventory/**
+          order: 400
+        - id: steam-gateway-market
+          uri: ${GATEWAY_STEAM_GATEWAY_BASE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/v1/market/**
+          order: 401
+
+        # Trades: выбор предметов для обмена, лента предложений
+        - id: trades
+          uri: ${GATEWAY_TRADES_BASE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/v1/trades/**
+          order: 500
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Ответы API — всегда JSON (ошибки gateway обрабатываются JsonErrorWebExceptionHandler).
+# Уведомления — по TCP: клиент подключается к gateway TCP, трафик проксируется в messaging.
+
+# Проверка JWT + блокировки перед проксированием (GET {auth}/auth/session).
+gateway:
+  openapi:
+    public-host: ${GATEWAY_OPENAPI_PUBLIC_HOST:localhost}
+  session-check:
+    auth-base-url: ${GATEWAY_AUTH_BASE_URL:http://localhost:8081}
+    connect-timeout-ms: 3000
+    read-timeout-ms: 10000
+  notifications:
+    tcp:
+      port: ${GATEWAY_TCP_NOTIFICATIONS_PORT:9092}
+      messaging-host: ${GATEWAY_MESSAGING_TCP_HOST:localhost}
+      messaging-port: ${GATEWAY_MESSAGING_TCP_PORT:9090}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus, metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.skinsshowcase.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true

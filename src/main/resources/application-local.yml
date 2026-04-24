@@ -1,0 +1,8 @@
+# Локальная разработка: порты бэкендов по умолчанию
+# Запуск всех сервисов: auth 8081, messaging 8082, items 8083, steam-gateway 8084, api-gateway 8080
+# Для items и steam-gateway укажи server.port при запуске или в их application-local.yml
+
+logging:
+  level:
+    com.skinsshowcase.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
